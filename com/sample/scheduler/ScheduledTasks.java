@@ -7,9 +7,6 @@ import java.util.List;
 
 public class ScheduledTasks {
 
-    /**
-     * Handle notification messages.
-     */
     @Scheduled(cron = "*/15 * * * * *")
     @SchedulerLock(name = "ScheduledTasks_fetchIntoOutMessages", lockAtLeastForString = "PT14S", lockAtMostForString = "PT1M")
     public void handleNotificationMessages() {
@@ -39,19 +36,6 @@ public class ScheduledTasks {
         }
     }
 
-    /**
-     * This job is responsible to handle pending broadcast messages, where it fetch the list
-     * numbers per each broadcast message list and populate them into out messages, where if
-     * success, the broadcast message status will be set to "BroadcastMessageStatus.SENT" and
-     * its systemUserCreditLog(s) transaction type will be set to "TransactionType.SENT". For
-     * Virtual type lists, their list numbers will be deleted as to avoid records duplication.
-     *
-     * @param broadcastMessage
-     *        the broadcast message
-     *
-     * @author Abdullah
-     * @created Feb 19, 2020
-     */
     private void handleSMSNotification(BroadcastMessage broadcastMessage) {
         LOGGER.info("Start handling SMS pendingBroadcastMessage with id [" + broadcastMessage.getId() + "]");
         List<ListNumber> broadcastMessageListNumbers = listNumberDAO.findAllActiveListNumbersByList(broadcastMessage.getList().getId());
@@ -72,7 +56,7 @@ public class ScheduledTasks {
         List<OutMessages> outMessagesListToAdd = new ArrayList<OutMessages>();
 
         String hasRoleForHLR = systemUserService.getAllSystemUserRoles(broadcastMessage.getCreatedBy().getId()).stream().map(x -> x.getScreenFunction().getName())
-                .filter(x -> x.equalsIgnoreCase("enable_hlr")).findFirst().orElse(null);
+                .filter(x -> x.equalsIgnoreCase(Constants.ENABLE_HLR_ROLE)).findFirst().orElse(null);
 
         if(hasRoleForHLR != null) {
             fgcService.checkBulkMsisdnOperator(broadcastMessageListNumbers);
@@ -135,13 +119,6 @@ public class ScheduledTasks {
         LOGGER.info("Finish handling SMS pendingBroadcastMessage with id [" + broadcastMessage.getId() + "]");
     }
 
-
-    /**
-     * Send pending messages to ActiveMQ and archive them
-     *
-     * @author Rami
-     * @created Mar 01, 2020
-     */
     @Scheduled(cron = "*/1 * * * * *")
     @SchedulerLock(name = "ScheduledTasks_sendOutMessages", lockAtMostForString = "PT1M")
     public void sendMessage() {
