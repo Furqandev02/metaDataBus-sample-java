@@ -44,13 +44,13 @@ public class MessageController {
                                         @RequestParam(value = "whatsappTemplateText", required = false) String whatsappTemplateText) {
         SystemUser systemUser = super.getAuthUser();
 
-        if(req.getParameter("messageTypeId") != null && !req.getParameter("messageTypeId").isEmpty()) {
-            MessageType msgType = messageTypeDAO.findById(Integer.parseInt(req.getParameter("messageTypeId")));
+        if(req.getParameter(Constants.MESSAGE_TYPE_ID) != null && !req.getParameter(Constants.MESSAGE_TYPE_ID).isEmpty()) {
+            MessageType msgType = messageTypeDAO.findById(Integer.parseInt(req.getParameter(Constants.MESSAGE_TYPE_ID)));
             if(notificationTypeId.equals(Constants.NotificationType.SMS.getId())
-                    && (msgType.getName().equals("رسائل دعائية") || msgType.getName().equals("رسائل توعوية"))
-                    && !Utility.isSMSTimeAllowed(req.getParameter("date"))) {
-                redirectAttributes.addFlashAttribute("Error", true);
-                redirectAttributes.addFlashAttribute("message", resourceBundle.getString("messages.allowed.time"));
+                    && (msgType.getName().equals(Constants.PROMOTIONAL) || msgType.getName().equals(Constants.AWARENESS))
+                    && !Utility.isSMSTimeAllowed(req.getParameter(Constants.DATE))) {
+                redirectAttributes.addFlashAttribute(Constants.ERROR, true);
+                redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("messages.allowed.time"));
                 return "redirect:/messages/create-messages";
             }
         }
@@ -75,31 +75,31 @@ public class MessageController {
             // take interface value to save it in objects fields
             while (out.hasMoreElements()) {
                 String x = out.nextElement().toString();
-                if (x.equals("messageSenderId")) {
+                if (x.equals(Constants.MESSAGE_SENDER_ID)) {
                     String messageSenderId = req.getParameter(x);
                     if (messageSenderId != null && !messageSenderId.equals("")) {
                         broadcastMessage.setMessageSender(messageSenderDAO.findById(Integer.parseInt(messageSenderId)));
                     }
-                } else if (x.equals("messageTypeId")) {
+                } else if (x.equals(Constants.MESSAGE_TYPE_ID)) {
                     String messageTypeId = req.getParameter(x);
                     if (messageTypeId != null && !messageTypeId.equals("")) {
                         broadcastMessage.setMessageType(messageTypeDAO.findById(Integer.parseInt(req.getParameter(x))));
                     }
-                } else if (x.equals("text")) {
+                } else if (x.equals(Constants.TEXT)) {
                     text = req.getParameter(x);
                     text = text.replaceAll("\r\n", "\n");
                     broadcastMessage.setMessagePart(Utility.getSMSPartsCount(text));
                     broadcastMessage.setText(text);
-                } else if (x.equals("title")) {
+                } else if (x.equals(Constants.TITLE)) {
                     broadcastMessage.setTitle(req.getParameter(x));
-                } else if (x.equals("messagePart")) {
+                } else if (x.equals(Constants.MESSAGE_PART)) {
                     broadcastMessage.setMessagePart(Integer.parseInt(req.getParameter(x)));
-                } else if (x.equals("date") && !req.getParameter(x).equals("")) {
+                } else if (x.equals(Constants.DATE) && !req.getParameter(x).equals("")) {
                     broadcastMessage.setSendDate(
                             LocalDateTime.parse(req.getParameter(x), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-                } else if (x.equals("sendDate") && req.getParameter(x).equals("0")) {
+                } else if (x.equals(Constants.SEND_DATE) && req.getParameter(x).equals("0")) {
                     broadcastMessage.setSendDate(LocalDateTime.now());
-                } else if (x.equals("receiverOptions")) {
+                } else if (x.equals(Constants.RECIEVER_OPTIONS)) {
                     if (broadcastMessage.getSendDate() == null) {
                         broadcastMessage.setSendDate(LocalDateTime.now());
                     }
@@ -161,8 +161,8 @@ public class MessageController {
                                             selectedListNumbersByUsers.get(systemUser.getId()));
                                 } catch (Exception e) {
                                     LOGGER.error("Failed to process uploaded file", e);
-                                    redirectAttributes.addFlashAttribute("Error", true);
-                                    redirectAttributes.addFlashAttribute("message", resourceBundle.getString("general.unexpectedError"));
+                                    redirectAttributes.addFlashAttribute(Constants.ERROR, true);
+                                    redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("general.unexpectedError"));
                                 }
                             } else if (!selectedListNumbersByUsers.get(systemUser.getId()).isEmpty()
                                     && !uploadFile.isEmpty()) {
@@ -177,8 +177,8 @@ public class MessageController {
                                             selectedListNumbersByUsers.get(systemUser.getId()));
                                 } catch (Exception e) {
                                     LOGGER.error("Failed to process uploaded file", e);
-                                    redirectAttributes.addFlashAttribute("Error", true);
-                                    redirectAttributes.addFlashAttribute("message", resourceBundle.getString("general.unexpectedError"));
+                                    redirectAttributes.addFlashAttribute(Constants.ERROR, true);
+                                    redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("general.unexpectedError"));
                                 }
                             } else if ((manuallyAddedNumbers != null && !manuallyAddedNumbers.isEmpty())
                                     && !selectedListNumbersByUsers.get(systemUser.getId()).isEmpty()) {
@@ -202,8 +202,8 @@ public class MessageController {
                                             getManuallyAddedListNumbers(manuallyAddedNumbers, addList));
                                 } catch (Exception e) {
                                     LOGGER.error("Failed to process uploaded file", e);
-                                    redirectAttributes.addFlashAttribute("Error", true);
-                                    redirectAttributes.addFlashAttribute("message", resourceBundle.getString("general.unexpectedError"));
+                                    redirectAttributes.addFlashAttribute(Constants.ERROR, true);
+                                    redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("general.unexpectedError"));
                                 }
                             } else if (!selectedListNumbersByUsers.get(systemUser.getId()).isEmpty()) {
                                 LOGGER.info("Adding new broadcast message by choosing from existing lists");
@@ -221,9 +221,8 @@ public class MessageController {
                                             broadcastMessage, notificationType, systemUserCreditList, resourceBundle, null);
                                 } catch (Exception e) {
                                     LOGGER.error("Failed to process uploaded file", e);
-                                    redirectAttributes.addFlashAttribute("Error", true);
-                                    redirectAttributes.addFlashAttribute("message",
-                                            resourceBundle.getString("general.unexpectedError"));
+                                    redirectAttributes.addFlashAttribute(Constants.ERROR, true);
+                                    redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("general.unexpectedError"));
                                 }
                             } else if (manuallyAddedNumbers != null && !manuallyAddedNumbers.isEmpty()) {
                                 LOGGER.info("Adding new broadcast message by adding number manually");
@@ -233,24 +232,24 @@ public class MessageController {
                             }
                             Thread runner = new Thread(uploadVirtualListFileThread);
                             runner.start();
-                            redirectAttributes.addFlashAttribute("wait", true);
+                            redirectAttributes.addFlashAttribute(Constants.WAIT, true);
                             if (broadcastMessage.getSendDate().isAfter(LocalDateTime.now())) {
-                                redirectAttributes.addFlashAttribute("message", resourceBundle.getString("general.waitingSchedule"));
+                                redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("general.waitingSchedule"));
                             } else {
-                                redirectAttributes.addFlashAttribute("message", resourceBundle.getString("general.waiting"));
+                                redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("general.waiting"));
                             }
                         } else {
-                            redirectAttributes.addFlashAttribute("Error", true);
-                            redirectAttributes.addFlashAttribute("message", resourceBundle.getString("list.zeroSelectedListNumbers"));
+                            redirectAttributes.addFlashAttribute(Constants.ERROR, true);
+                            redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("list.zeroSelectedListNumbers"));
                         }
                     }
                 }
             }
         } else {
-            redirectAttributes.addFlashAttribute("Error", true);
-            redirectAttributes.addFlashAttribute("message", resourceBundle.getString("pageContent.user-credit.notificationTypeInsufficientCredit"));
+            redirectAttributes.addFlashAttribute(Constants.ERROR, true);
+            redirectAttributes.addFlashAttribute(Constants.MESSAGE, resourceBundle.getString("pageContent.user-credit.notificationTypeInsufficientCredit"));
         }
-        redirectAttributes.addFlashAttribute("isSendToGroup", false);
+        redirectAttributes.addFlashAttribute(Constants.IS_SEND_TO_GROUP, false);
         return "redirect:/messages/create-messages";
     }
 
